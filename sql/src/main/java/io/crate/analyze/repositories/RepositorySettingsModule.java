@@ -38,8 +38,10 @@ import org.elasticsearch.repositories.fs.FsRepository;
 import org.elasticsearch.repositories.url.URLRepository;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 
 public class RepositorySettingsModule extends AbstractModule {
@@ -50,15 +52,14 @@ public class RepositorySettingsModule extends AbstractModule {
     private static final String S3 = "s3";
 
     private static final TypeSettings FS_SETTINGS = new TypeSettings(
-        ImmutableMap.of("location", FsRepository.LOCATION_SETTING),
-        ImmutableMap.of(
-            "compress", FsRepository.COMPRESS_SETTING,
-            "chunk_size", FsRepository.CHUNK_SIZE_SETTING
-        ));
+        convertSettingListToMap(FsRepository.settingsToValidate()),
+        convertSettingListToMap(FsRepository.optionalSettingsToValidate())
+    );
 
     private static final TypeSettings URL_SETTINGS = new TypeSettings(
-        ImmutableMap.of("url", URLRepository.URL_SETTING),
-        Collections.emptyMap());
+        convertSettingListToMap(URLRepository.settingsToValidate()),
+        Map.of()
+    );
 
     private static final TypeSettings HDFS_SETTINGS = new TypeSettings(
         Collections.emptyMap(),
@@ -137,5 +138,9 @@ public class RepositorySettingsModule extends AbstractModule {
         typeSettingsBinder.addBinding(URL).toInstance(URL_SETTINGS);
         typeSettingsBinder.addBinding(HDFS).toInstance(HDFS_SETTINGS);
         typeSettingsBinder.addBinding(S3).toInstance(S3_SETTINGS);
+    }
+
+    private static Map<String, Setting> convertSettingListToMap(List<Setting> settingList) {
+        return settingList.stream().collect(Collectors.toMap(Setting::getKey, s -> s));
     }
 }

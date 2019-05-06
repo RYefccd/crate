@@ -69,6 +69,10 @@ public class URLRepository extends BlobStoreRepository {
         new Setting<>("repositories.url.url", (s) -> s.get("repositories.uri.url", "http:"), URLRepository::parseURL,
             Property.NodeScope);
 
+    public static List<Setting> settingsToValidate() {
+        return List.of(URL_SETTING);
+    }
+
     private final List<String> supportedProtocols;
 
     private final URIPattern[] urlWhiteList;
