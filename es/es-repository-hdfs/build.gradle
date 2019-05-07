@@ -49,6 +49,7 @@ dependencies {
         exclude module: "guava"
         exclude module: "junit"
         exclude group: "io.netty", module: "netty"
+        exclude module: "log4j"
     }
     compile("org.apache.hadoop:hadoop-hdfs:${versions.hadoop2}") {
         exclude module: "guava"

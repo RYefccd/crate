@@ -22,7 +22,6 @@
 
 package io.crate.analyze.repositories;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.common.collections.Maps;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
@@ -31,11 +30,11 @@ import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.repositories.fs.FsRepository;
+import org.elasticsearch.repositories.hdfs.HdfsRepository;
 import org.elasticsearch.repositories.s3.S3ClientSettings;
 import org.elasticsearch.repositories.s3.S3Repository;
 import org.elasticsearch.repositories.url.URLRepository;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -60,18 +59,9 @@ public class RepositorySettingsModule extends AbstractModule {
     );
 
     private static final TypeSettings HDFS_SETTINGS = new TypeSettings(
-        Collections.emptyMap(),
-        ImmutableMap.<String, Setting>builder()
-            .put("uri", Setting.simpleString("uri", Setting.Property.NodeScope))
-            .put("security.principal", Setting.simpleString("security.principal", Setting.Property.NodeScope))
-            .put("path", Setting.simpleString("path", Setting.Property.NodeScope))
-            .put("load_defaults", Setting.boolSetting("load_defaults", true, Setting.Property.NodeScope))
-            .put("concurrent_streams", Setting.intSetting("concurrent_streams", 5, Setting.Property.NodeScope))
-            .put("compress", Setting.boolSetting("compress", true, Setting.Property.NodeScope))
-            // We cannot use a ByteSize setting as it doesn't support NULL and it must be NULL as default to indicate to
-            // not override the default behaviour.
-            .put("chunk_size", Setting.simpleString("chunk_size"))
-            .build()) {
+        Map.of(),
+        // tmp comment for review : left out 'concurrent_streams' as I didn't see any use of it
+        convertSettingListToMap(HdfsRepository.settingsToValidate())) {
 
         @Override
         public GenericProperties dynamicProperties(GenericProperties genericProperties) {

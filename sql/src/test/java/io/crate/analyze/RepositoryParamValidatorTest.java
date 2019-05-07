@@ -34,6 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 public class RepositoryParamValidatorTest extends CrateUnitTest {
 
@@ -89,6 +90,14 @@ public class RepositoryParamValidatorTest extends CrateUnitTest {
         Settings settings = validator.convertAndValidate("hdfs", genericProperties, ParameterContext.EMPTY);
         assertThat(settings.get("security.principal"), is("myuserid@REALM.DOMAIN"));
         assertThat(settings.get("uri"), is("hdfs://ha-name:8020"));
+    }
+
+    @Test
+    public void testHdfsUriDefaultValueIsNull() throws Exception {
+        GenericProperties genericProperties = new GenericProperties();
+        genericProperties.add(new GenericProperty("path", new StringLiteral("/user/name/data")));
+        Settings settings = validator.convertAndValidate("hdfs", genericProperties, ParameterContext.EMPTY);
+        assertThat(settings.get("uri"), nullValue());
     }
 
     @Test

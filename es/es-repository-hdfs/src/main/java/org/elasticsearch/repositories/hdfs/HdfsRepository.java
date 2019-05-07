@@ -33,6 +33,7 @@ import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.SuppressForbidden;
 import org.elasticsearch.common.blobstore.BlobPath;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
@@ -47,13 +48,40 @@ import java.net.URI;
 import java.net.UnknownHostException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.List;
 import java.util.Locale;
 
 public final class HdfsRepository extends BlobStoreRepository {
 
     private static final Logger LOGGER = LogManager.getLogger(HdfsRepository.class);
 
-    private static final String CONF_SECURITY_PRINCIPAL = "security.principal";
+    // buffer size passed to HDFS read/write methods
+    // TODO: why 100KB?
+    private static final ByteSizeValue DEFAULT_BUFFER_SIZE = new ByteSizeValue(100, ByteSizeUnit.KB);
+
+    private static final Setting<ByteSizeValue> BUFFER_SIZE_SETTING =
+        Setting.byteSizeSetting("buffer_size", DEFAULT_BUFFER_SIZE);
+
+    // We cannot use a ByteSize setting as it doesn't support NULL
+    // and it must be NULL as default to indicate to not override the default behaviour.
+    private static final Setting<String> CHUNK_SIZE_SETTING = Setting.simpleString("chunk_size",  Setting.Property.NodeScope);
+
+    private static final Setting<String> URI_SETTING = Setting.simpleString("uri", Setting.Property.NodeScope);
+
+    private static final Setting<String> PATH_SETTING = Setting.simpleString("path", Setting.Property.NodeScope);
+
+    private static final Setting<String> SECURITY_PRINCIPAL_SETTING = Setting.simpleString("security.principal", Setting.Property.NodeScope);
+
+    private static final Setting<Boolean> LOAD_DEFAULTS_SETTING = Setting.boolSetting("load_defaults",true, Setting.Property.NodeScope);
+
+    public static List<Setting> settingsToValidate() {
+        return List.of(URI_SETTING,
+                       SECURITY_PRINCIPAL_SETTING,
+                       PATH_SETTING,
+                       LOAD_DEFAULTS_SETTING,
+                       COMPRESS_SETTING,
+                       CHUNK_SIZE_SETTING);
+    }
 
     private final Environment environment;
     private final ByteSizeValue chunkSize;
@@ -61,18 +89,15 @@ public final class HdfsRepository extends BlobStoreRepository {
     private final URI uri;
     private final String pathSetting;
 
-    // buffer size passed to HDFS read/write methods
-    // TODO: why 100KB?
-    private static final ByteSizeValue DEFAULT_BUFFER_SIZE = new ByteSizeValue(100, ByteSizeUnit.KB);
 
     public HdfsRepository(RepositoryMetaData metadata, Environment environment,
                           NamedXContentRegistry namedXContentRegistry) {
         super(metadata, environment.settings(), namedXContentRegistry);
 
         this.environment = environment;
-        this.chunkSize = metadata.settings().getAsBytesSize("chunk_size", null);
+        this.chunkSize = metadata.settings().getAsBytesSize(CHUNK_SIZE_SETTING.getKey(), null);
 
-        String uriSetting = getMetadata().settings().get("uri");
+        String uriSetting = URI_SETTING.get(metadata.settings());
         if (Strings.hasText(uriSetting) == false) {
             throw new IllegalArgumentException("No 'uri' defined for hdfs snapshot/restore");
         }
@@ -87,7 +112,7 @@ public final class HdfsRepository extends BlobStoreRepository {
                 "Use 'path' option to specify a path [%s], not the uri [%s] for hdfs snapshot/restore", uri.getPath(), uriSetting));
         }
 
-        pathSetting = getMetadata().settings().get("path");
+        pathSetting = PATH_SETTING.get(getMetadata().settings());
         // get configuration
         if (pathSetting == null) {
             throw new IllegalArgumentException("No 'path' defined for hdfs snapshot/restore");
@@ -95,7 +120,7 @@ public final class HdfsRepository extends BlobStoreRepository {
     }
 
     private HdfsBlobStore createBlobstore(URI uri, String path, Settings repositorySettings)  {
-        Configuration hadoopConfiguration = new Configuration(repositorySettings.getAsBoolean("load_defaults", true));
+        Configuration hadoopConfiguration = new Configuration(LOAD_DEFAULTS_SETTING.get(repositorySettings));
         hadoopConfiguration.setClassLoader(HdfsRepository.class.getClassLoader());
         hadoopConfiguration.reloadConfiguration();
 
@@ -119,7 +144,7 @@ public final class HdfsRepository extends BlobStoreRepository {
         Class<?> ret = hadoopConfiguration.getClass(configKey, null, FailoverProxyProvider.class);
         boolean haEnabled = ret != null;
 
-        int bufferSize = repositorySettings.getAsBytesSize("buffer_size", DEFAULT_BUFFER_SIZE).bytesAsInt();
+        int bufferSize = BUFFER_SIZE_SETTING.get(repositorySettings).bytesAsInt();
 
         // Create the filecontext with our user information
         // This will correctly configure the filecontext to have our UGI as its internal user.
@@ -151,7 +176,7 @@ public final class HdfsRepository extends BlobStoreRepository {
         }
 
         // Check if the user added a principal to use, and that there is a keytab file provided
-        String kerberosPrincipal = repositorySettings.get(CONF_SECURITY_PRINCIPAL);
+        String kerberosPrincipal = SECURITY_PRINCIPAL_SETTING.get(repositorySettings);
 
         // Check to see if the authentication method is compatible
         if (kerberosPrincipal != null && authMethod.equals(AuthenticationMethod.SIMPLE)) {
@@ -161,7 +186,7 @@ public final class HdfsRepository extends BlobStoreRepository {
         } else if (kerberosPrincipal == null && authMethod.equals(AuthenticationMethod.KERBEROS)) {
             throw new RuntimeException("HDFS Repository does not support [KERBEROS] authentication without " +
                 "a valid Kerberos principal and keytab. Please specify a principal in the repository settings with [" +
-                CONF_SECURITY_PRINCIPAL + "].");
+                SECURITY_PRINCIPAL_SETTING.getKey() + "].");
         }
 
         // Now we can initialize the UGI with the configuration.
