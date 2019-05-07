@@ -56,6 +56,7 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -653,6 +654,18 @@ public class Setting<T> implements ToXContentObject {
             this.dependencies = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(dependencies)));
         }
 
+        /**
+         * Returns the delegate setting using the key suffix as the new setting key
+         * This is meant to serve as a convenience method to extract a setting
+         * of the same type as it's delegate.
+         * Use {@link #getConcreteSetting} or {@link #getConcreteSettingForNamespace(String)}
+         * to retrieve valid concrete settings
+         *
+         */
+        public Setting<T> asSettingUsingSuffixAsKey() {
+            return delegateFactory.apply(key.suffix);
+        }
+
         boolean isGroupSetting() {
             return true;
         }
@@ -997,6 +1010,16 @@ public class Setting<T> implements ToXContentObject {
             logSettingUpdate(Setting.this, current, previous, logger);
             consumer.accept(value);
         }
+    }
+
+    public Setting<T> copyAndRename(UnaryOperator<String> keyOperator) {
+        assert (isGroupSetting() == false) : "Can only be applied to concrete settings";
+        return new Setting<>(new SimpleKey(keyOperator.apply(getKey())),
+                             fallbackSetting,
+                             defaultValue,
+                             parser,
+                             validator,
+                             properties.toArray(new Property[0]));
     }
 
     public static Setting<Version> versionSetting(final String key, final Version defaultValue, Property... properties) {
