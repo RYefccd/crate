@@ -115,7 +115,11 @@ public class RepositorySettingsModule extends AbstractModule {
     private static List<Setting> renameSettingsUsingSuffixAsKey(List<Setting> settingList) {
         return settingList
             .stream()
-            .map(s -> s.copyAndRename(k -> ((String) k).substring(((String) k).lastIndexOf('.') + 1)))
+            .map(s -> s.copyAndRename(k -> getSuffixOrInput((String) k)))
             .collect(Collectors.toList());
+    }
+
+    private static String getSuffixOrInput(String str) {
+        return str.substring(str.lastIndexOf('.') + 1);
     }
 }
