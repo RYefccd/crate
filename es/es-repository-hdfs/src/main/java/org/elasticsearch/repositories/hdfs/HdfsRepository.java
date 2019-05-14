@@ -74,7 +74,7 @@ public final class HdfsRepository extends BlobStoreRepository {
 
     private static final Setting<Boolean> LOAD_DEFAULTS_SETTING = Setting.boolSetting("load_defaults",true, Setting.Property.NodeScope);
 
-    public static List<Setting> settingsToValidate() {
+    public static List<Setting> optionalSettingsToValidate() {
         return List.of(URI_SETTING,
                        SECURITY_PRINCIPAL_SETTING,
                        PATH_SETTING,

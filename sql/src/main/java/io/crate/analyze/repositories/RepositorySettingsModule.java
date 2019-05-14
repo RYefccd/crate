@@ -60,8 +60,7 @@ public class RepositorySettingsModule extends AbstractModule {
 
     private static final TypeSettings HDFS_SETTINGS = new TypeSettings(
         Map.of(),
-        // tmp comment for review : left out 'concurrent_streams' as I didn't see any use of it
-        convertSettingListToMap(HdfsRepository.settingsToValidate())) {
+        convertSettingListToMap(HdfsRepository.optionalSettingsToValidate())) {
 
         @Override
         public GenericProperties dynamicProperties(GenericProperties genericProperties) {
