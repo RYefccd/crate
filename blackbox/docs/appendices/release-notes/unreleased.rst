@@ -82,6 +82,10 @@ The following settings are removed:
 Breaking Changes
 ----------------
 
+- Only allow a single port value on each ``discovery.seed_hosts`` (old name
+  ``discovery.zen.ping.unicast.hosts``) entry, defining a port range as it was
+  allowed but ignored in previous versions will be rejected.
+
 - Removed the implicit soft limit of 10000 that was applied for clients using
   ``HTTP``.
 
