@@ -69,7 +69,7 @@ public class URLRepository extends BlobStoreRepository {
         new Setting<>("repositories.url.url", (s) -> s.get("repositories.uri.url", "http:"), URLRepository::parseURL,
             Property.NodeScope);
 
-    public static List<Setting> settingsToValidate() {
+    public static List<Setting> mandatorySettingsToValidate() {
         return List.of(URL_SETTING);
     }
 

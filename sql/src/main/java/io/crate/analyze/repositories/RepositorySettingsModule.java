@@ -49,12 +49,12 @@ public class RepositorySettingsModule extends AbstractModule {
     private static final String S3 = "s3";
 
     private static final TypeSettings FS_SETTINGS = new TypeSettings(
-        convertSettingListToMap(FsRepository.settingsToValidate()),
+        convertSettingListToMap(FsRepository.mandatorySettingsToValidate()),
         convertSettingListToMap(FsRepository.optionalSettingsToValidate())
     );
 
     private static final TypeSettings URL_SETTINGS = new TypeSettings(
-        convertSettingListToMap(URLRepository.settingsToValidate()),
+        convertSettingListToMap(URLRepository.mandatorySettingsToValidate()),
         Map.of()
     );
 
